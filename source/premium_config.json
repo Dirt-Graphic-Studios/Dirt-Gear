@@ -1,5 +1,5 @@
 {
- "enabled": true,
+ "enabled": false,
  "daily_limit": 5,
  "price": "$5 USD / month",
  "store_id": null,
