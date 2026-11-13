@@ -1,5 +1,12 @@
 # Dirt Gear releases
 
+## Unreleased (Premium, switched off until the store is set up)
+
+- Free daily limit of 5 gear sets (Pack & install, Export .pnt, Export TGAs). Re-exporting the same gear name the same day is free.
+- Dirt Gear Premium, $5 USD/month, for unlimited gear sets, with Lemon Squeezy licence keys.
+- Friend codes for free unlimited access.
+- Top-bar chip showing how many sets are left today, plus a Premium dialog.
+
 ## v1.1.1 — 2026-11-13
 
 - Dirt Gear now lives under **Dirt Graphic Studios** on GitHub: github.com/Dirt-Graphic-Studios/Dirt-Gear. Updates now come straight from the new address.

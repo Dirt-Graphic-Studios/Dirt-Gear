@@ -1,0 +1,8 @@
+{
+ "enabled": false,
+ "daily_limit": 5,
+ "price": "$5 USD / month",
+ "store_id": null,
+ "product_ids": [],
+ "checkout_url": ""
+}

@@ -8,11 +8,11 @@ function notify(message,error=false){$('toast').textContent=message;$('toast').c
 async function api(path,body,method='POST'){
  const opts={method,headers:{'X-Dirt-Token':token}};if(desktop)opts.headers['X-Dirt-Desktop']='1';
  if(body instanceof FormData)opts.body=body;else if(body!==undefined){opts.body=JSON.stringify(body);opts.headers['Content-Type']='application/json'}
- const r=await fetch('/api/'+path,opts);if(!r.ok){let e;try{e=await r.json()}catch{e={error:`Request failed (${r.status})`}}throw Error(e.error)}return r;
+ const r=await fetch('/api/'+path,opts);if(!r.ok){let e;try{e=await r.json()}catch{e={error:`Request failed (${r.status})`}}const err=Error(e.error);if(e.limit){err.limit=true;err.premium=e.premium}throw err}return r;
 }
 async function busy(title,fn,detail='Large PSDs can take a moment. Keep this window open.'){
  $('busyTitle').textContent=title;$('busyDetail').textContent=detail;$('busyDialog').showModal();
- try{return await fn()}catch(e){notify(e.message,true);console.error(e)}finally{$('busyDialog').close()}
+ try{return await fn()}catch(e){if(e.limit){$('busyDialog').close();showPremium(e.premium);return}notify(e.message,true);console.error(e)}finally{$('busyDialog').close()}
 }
 function snapshot(){if(!state)return;undo.push(JSON.stringify(state.artworks));if(undo.length>40)undo.shift();redo=[];dirty=true}
 function undoAction(back=false){const from=back?redo:undo,to=back?undo:redo;if(!from.length)return;to.push(JSON.stringify(state.artworks));state.artworks=JSON.parse(from.pop());if(!state.artworks.some(x=>x.id===selected))selected=null;lastFieldSelection=null;dirty=true;renderArtList();draw();}
@@ -199,7 +199,7 @@ $('addArtwork').onclick=()=>$('artInput').click();$('artInput').onchange=async()
 document.addEventListener('paste',e=>{if(/INPUT|TEXTAREA/.test(e.target.tagName)||!ready)return;e.preventDefault();nativePaste()});
 $('stage').ondragover=e=>{e.preventDefault()};$('stage').ondrop=e=>{e.preventDefault();addFiles([...e.dataTransfer.files])};
 document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undoAction(e.shiftKey)}if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeArt()}if(current()&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();snapshot();const a=current(),step=e.shiftKey?10:1;a.x+=e.key==='ArrowLeft'?-step:e.key==='ArrowRight'?step:0;a.y+=e.key==='ArrowUp'?-step:e.key==='ArrowDown'?step:0;updateFields();draw()}});
-async function saveDownload(path,title){await busy(title,async()=>{const r=await api(path,getState());if(r.headers.get('Content-Type')?.includes('application/json')){const result=await r.json();if(result.cancelled){notify('Save cancelled.');return}if(path==='project/save')dirty=false;notify('Saved '+result.filename);return}const blob=await r.blob();let name=r.headers.get('Content-Disposition')?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];if(name)name=decodeURIComponent(name);else name=r.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/i)?.[1]||'Dirt Gear';const a=document.createElement('a');const src=URL.createObjectURL(blob);a.href=src;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(src),60000);if(path==='project/save')dirty=false;notify(`Saved ${name}. Check your Downloads folder.`)},'Rendering full-resolution textures and checking the output. This can take a minute.')}
+async function saveDownload(path,title){await busy(title,async()=>{const r=await api(path,getState());if(r.headers.get('Content-Type')?.includes('application/json')){const result=await r.json();if(result.cancelled){notify('Save cancelled.');return}if(path==='project/save')dirty=false;notify('Saved '+result.filename);return}const blob=await r.blob();let name=r.headers.get('Content-Disposition')?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];if(name)name=decodeURIComponent(name);else name=r.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/i)?.[1]||'Dirt Gear';const a=document.createElement('a');const src=URL.createObjectURL(blob);a.href=src;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(src),60000);if(path==='project/save')dirty=false;notify(`Saved ${name}. Check your Downloads folder.`)},'Rendering full-resolution textures and checking the output. This can take a minute.');if(path.startsWith('export/'))loadPremium()}
 $('saveForLater').onclick=()=>busy('Saving your editable design',async()=>{const result=await(await api('project/quick-save',getState())).json();dirty=false;notify(`Saved ${result.name}. You can continue it next time you open Dirt Gear.`);await loadRecentProject()},'Keeping your PSD, artwork, text, and layer choices together on this PC.');
 let recentProject=null;
 async function loadRecentProject(){const data=await(await api('project/recent',undefined,'GET')).json();recentProject=data.projects[0]||null;$('continueProject').hidden=!recentProject;if(recentProject)$('continueProject').textContent='Continue '+recentProject.name}
@@ -207,11 +207,11 @@ $('continueProject').onclick=async()=>{if(!recentProject||!mayReplace())return;a
 $('exportPnt').onclick=()=>saveDownload('export/pnt','Packing your MX Bikes paint');$('exportTga').onclick=()=>saveDownload('export/tga','Exporting your three textures');$('saveProject').onclick=()=>saveDownload('project/save','Saving your editable project');$('gearName').oninput=()=>dirty=true;
 async function loadGameModels(){try{const data=await(await api('game/paint-folders',undefined,'GET')).json(),picker=$('gameModel');picker.replaceChildren();if(!data.models.length){picker.add(new Option('No MX Bikes rider models found',''));$('installPnt').disabled=true;return}for(const model of data.models)picker.add(new Option(model,model));picker.value=data.models.includes('default_mx')?'default_mx':data.models[0];$('installPnt').disabled=!ready}catch(e){notify('Could not find MX Bikes rider folders: '+e.message,true)}}
 $('gameModel').onchange=()=>$('installPnt').disabled=!ready||!$('gameModel').value;
-$('installPnt').onclick=async()=>{const model=$('gameModel').value;if(!model)return;await busy('Installing paint in MX Bikes',async()=>{let response=await(await api('game/install-pnt',{model,state:getState()})).json();if(response.exists){if(!confirm(`${response.filename} already exists for ${model}. Replace it?`))return;response=await(await api('game/install-pnt',{model,state:getState(),replace:true})).json()}notify(`Installed ${response.filename} for ${model}. Restart MX Bikes to refresh its paint list.`)},'Packing the textures and saving the paint into the selected rider model.');};
+$('installPnt').onclick=async()=>{const model=$('gameModel').value;if(!model)return;await busy('Installing paint in MX Bikes',async()=>{let response=await(await api('game/install-pnt',{model,state:getState()})).json();if(response.exists){if(!confirm(`${response.filename} already exists for ${model}. Replace it?`))return;response=await(await api('game/install-pnt',{model,state:getState(),replace:true})).json()}notify(`Installed ${response.filename} for ${model}. Restart MX Bikes to refresh its paint list.`)},'Packing the textures and saving the paint into the selected rider model.');loadPremium()};
 $('retryShading').onclick=()=>{proofFailedKey='';draw()};
 $('proofBtn').onclick=async()=>{await busy('Checking final rendering',async()=>{await api('render',getState());$('proofImage').src=url('preview/proof?v='+Date.now());$('proofDialog').showModal()})};$('closeProof').onclick=()=>$('proofDialog').close();
 $('busyDialog').addEventListener('cancel',e=>e.preventDefault());window.addEventListener('beforeunload',e=>{if(!desktop&&dirty){e.preventDefault();e.returnValue=''}});window.addEventListener('resize',resize);
-(async()=>{try{const platform=await(await api('platform',undefined,'GET')).json();desktop=platform.desktop;appVersion=platform.version||'';$('versionBtn').textContent='v'+appVersion;$('aboutVersion').textContent=appVersion;setTimeout(()=>checkUpdates(false),4000);await loadGameModels();try{await loadRecentProject()}catch(e){notify('Saved projects are unavailable: '+e.message,true)}const data=await(await api('document',undefined,'GET')).json();if(data)await acceptDoc(data)}catch(e){notify(e.message,true)}})();
+(async()=>{try{const platform=await(await api('platform',undefined,'GET')).json();desktop=platform.desktop;appVersion=platform.version||'';$('versionBtn').textContent='v'+appVersion;$('aboutVersion').textContent=appVersion;setTimeout(()=>checkUpdates(false),4000);loadPremium();await loadGameModels();try{await loadRecentProject()}catch(e){notify('Saved projects are unavailable: '+e.message,true)}const data=await(await api('document',undefined,'GET')).json();if(data)await acceptDoc(data)}catch(e){notify(e.message,true)}})();
 setInterval(()=>api('heartbeat',{}).catch(()=>{}),15000);
 function defaultTextColour(){
  try{const im=images.default;if(!im)return '#202020';const c=document.createElement('canvas');c.width=c.height=9;const g=c.getContext('2d');g.drawImage(im,im.naturalWidth*.45,im.naturalHeight*.45,im.naturalWidth*.1,im.naturalHeight*.1,0,0,9,9);const p=g.getImageData(0,0,9,9).data;let light=0;for(let i=0;i<p.length;i+=4)light+=p[i]*.2126+p[i+1]*.7152+p[i+2]*.0722;return light/81>115?'#202020':'#ffffff'}catch{return '#202020'}
@@ -391,6 +391,29 @@ $('versionBtn').onclick=()=>{$('aboutDialog').showModal();checkUpdates(true)};
 $('closeAbout').onclick=()=>$('aboutDialog').close();
 $('checkNow').onclick=()=>checkUpdates(true);
 $('checkOnStart').onchange=async()=>{try{await api('update/settings',{check_on_start:$('checkOnStart').checked})}catch(e){notify(e.message,true)}};
+
+let premiumInfo=null;
+function renderPremium(info){
+ premiumInfo=info;const chip=$('premiumBtn');
+ if(!info||!info.enabled){chip.hidden=true;return}
+ chip.hidden=false;
+ if(info.premium){chip.textContent='Premium';chip.className='plan-chip pro'}
+ else{chip.textContent=info.remaining+' of '+info.limit+' left today';chip.className='plan-chip'+(info.remaining===0?' out':info.remaining<=1?' low':'')}
+ $('premiumFree').hidden=!!info.premium;$('premiumActive').hidden=!info.premium;$('premiumMeter').hidden=!!info.premium;
+ $('premiumTitle').textContent=info.premium?'Premium is active.':'Unlimited gear sets.';
+ $('premiumSummary').textContent=info.premium?(info.kind==='friend'?'Unlocked with a friend code. Pack and export as many gear sets as you like.':'Thanks for supporting Dirt Gear'+(info.email?' ('+info.email+')':'')+'. Pack and export as many gear sets as you like.'):(info.remaining===0?`You’ve finished all ${info.limit} free gear sets for today. Get Premium for unlimited gear sets, or come back after midnight. Re-packing a gear you’ve already finished today still works.`:`Free: ${info.limit} gear sets a day. You’ve used ${info.used} today, and it resets at midnight. Re-packing or exporting a gear name you’ve already finished today doesn’t use another.`);
+ $('premiumMeter').firstElementChild.style.width=Math.min(100,100*info.used/info.limit)+'%';
+ $('premiumLapsed').hidden=!info.lapsed;$('premiumLapsed').textContent=info.lapsed||'';
+ $('premiumBuy').disabled=!info.can_buy;$('premiumBuy').textContent=info.can_buy?'Get Premium · '+info.price:'Premium is coming soon';
+}
+async function loadPremium(){try{renderPremium(await(await api('premium/status',undefined,'GET')).json())}catch(e){console.error(e)}}
+function showPremium(info){if(info)renderPremium(info);if(!$('premiumDialog').open)$('premiumDialog').showModal()}
+$('premiumBtn').onclick=async()=>{await loadPremium();$('premiumDialog').showModal()};
+$('closePremium').onclick=()=>$('premiumDialog').close();
+$('premiumBuy').onclick=async()=>{try{await api('premium/buy',{});notify('Opened the Dirt Gear Premium page in your browser.')}catch(e){notify(e.message,true)}};
+$('premiumActivate').onclick=async()=>{const key=$('premiumKey').value.trim();if(!key){$('premiumKey').focus();return}$('premiumActivate').disabled=true;try{const info=await(await api('premium/activate',{key})).json();$('premiumKey').value='';renderPremium(info);notify(info.premium?'Premium unlocked. Enjoy unlimited gear sets!':'Saved.')}catch(e){notify(e.message,true)}finally{$('premiumActivate').disabled=false}};
+$('premiumKey').addEventListener('keydown',e=>{if(e.key==='Enter')$('premiumActivate').click()});
+$('premiumRemove').onclick=async()=>{if(!confirm('Remove Premium from this PC? You can activate it again with the same key or code.'))return;try{renderPremium(await(await api('premium/remove',{})).json());notify('Premium removed from this PC.')}catch(e){notify(e.message,true)}};
 
 $('textTracking').addEventListener('input',()=>{$('trackingValue').textContent=$('textTracking').value+'%'});
 $('textTracking').addEventListener('dblclick',()=>{$('textTracking').value=0;$('trackingValue').textContent='0%';queueFontPreview()});

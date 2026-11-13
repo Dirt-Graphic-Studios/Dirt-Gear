@@ -42,6 +42,9 @@ jobs:
       - name: Colour overlay tests
         run: python tests/test_overlay.py
 
+      - name: Premium tests
+        run: python tests/test_premium.py
+
       - name: Build app
         env:
           REPO: ${{ github.repository }}

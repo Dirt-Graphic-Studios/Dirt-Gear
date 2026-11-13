@@ -29,6 +29,7 @@ from psd_tools.api.layers import PixelLayer
 from packing import tga_bytes, pack_pnt, read_pnt, field
 import fastpreview
 import updater
+import premium
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).parent))
 app = Flask(__name__, static_folder=str(ROOT/'static'))
@@ -99,6 +100,8 @@ def headers(response):
 @app.errorhandler(Exception)
 def error(exc):
     from werkzeug.exceptions import HTTPException
+    if isinstance(exc, premium.LimitReached):
+        return jsonify(error=str(exc), limit=True, premium=premium_module().status()), 402
     code = exc.code if isinstance(exc, HTTPException) else 400
     logging.exception('Dirt Gear request failed')
     return jsonify(error=str(exc)), code
@@ -689,6 +692,36 @@ def update_settings():
     return jsonify(save_settings(changes))
 
 
+# -- premium --------------------------------------------------------------
+def premium_module():
+    premium.setup(local_app_data()/APP_DATA_NAME)
+    return premium
+
+
+@app.get('/api/premium/status')
+def premium_status():
+    return jsonify(premium_module().status())
+
+
+@app.post('/api/premium/activate')
+def premium_activate():
+    return jsonify(premium_module().activate(str((request.get_json() or {}).get('key', ''))[:200]))
+
+
+@app.post('/api/premium/remove')
+def premium_remove():
+    return jsonify(premium_module().remove())
+
+
+@app.post('/api/premium/buy')
+def premium_buy():
+    url = premium_module().config()['checkout_url']
+    if not url:
+        raise ValueError('Dirt Gear Premium isn’t on sale yet.')
+    webbrowser.open(url)
+    return jsonify(ok=True)
+
+
 @app.post('/api/update/open-page')
 def update_open_page():
     result = updater.check()
@@ -1268,7 +1301,7 @@ def render_live():
         return send_file(io.BytesIO(result), mimetype='image/png')
 
 
-def download(data, filename, mime='application/octet-stream'):
+def download(data, filename, mime='application/octet-stream', on_saved=None):
     if NATIVE_WINDOW is not None and (request.headers.get('X-Dirt-Desktop') or request.headers.get('X-Moto-Desktop')) == '1':
         import webview
         extension = Path(filename).suffix
@@ -1284,7 +1317,11 @@ def download(data, filename, mime='application/octet-stream'):
             # as the filename. Keep both names aligned when Save As renames it.
             data = data[:4] + field(destination.stem) + data[104:]
         destination.write_bytes(data)
+        if on_saved:
+            on_saved()
         return jsonify(saved=str(destination), filename=destination.name)
+    if on_saved:
+        on_saved()
     return send_file(io.BytesIO(data), mimetype=mime, as_attachment=True, download_name=filename)
 
 
@@ -1397,6 +1434,7 @@ def install_game_pnt():
         if model not in folders:
             raise ValueError('Choose an available MX Bikes rider model.')
         doc.update(request_data['state'])
+        premium_module().check(doc.state['name'])
         textures = doc.textures()
         packed = pack_pnt(doc.state['name'], textures)
         if set(read_pnt(packed)) != set(textures):
@@ -1410,6 +1448,7 @@ def install_game_pnt():
             temporary.replace(destination)
         finally:
             temporary.unlink(missing_ok=True)
+        premium_module().record(doc.state['name'])
         return jsonify(saved=str(destination), filename=destination.name, model=model)
 
 
@@ -1418,6 +1457,9 @@ def export(kind):
     with LOCK:
         doc = require_doc()
         doc.update(request.get_json())
+        if kind not in ('pnt', 'tga'):
+            raise ValueError('Unknown export type')
+        premium_module().check(doc.state['name'])
         textures = doc.textures()
         name = safe_name(doc.state['name'])
         if kind == 'pnt':
@@ -1425,13 +1467,14 @@ def export(kind):
             checked = read_pnt(packed)
             if set(checked) != set(textures):
                 raise ValueError('PNT verification failed')
-            return download(packed, name+'.pnt')
+            return download(packed, name+'.pnt', on_saved=lambda: premium_module().record(doc.state['name']))
         if kind == 'tga':
             out = io.BytesIO()
             with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
                 for stem,data in textures.items():
                     z.writestr(stem+'.tga', data)
-            return download(out.getvalue(), name+' - TGAs.zip', 'application/zip')
+            return download(out.getvalue(), name+' - TGAs.zip', 'application/zip',
+                            on_saved=lambda: premium_module().record(doc.state['name']))
         raise ValueError('Unknown export type')
 
 

@@ -24,6 +24,9 @@ with ZipFile(OUTPUT) as archive:
     assert archive.getinfo('_internal/static/brand.ttf').file_size > 1000
     assert archive.getinfo('_internal/VERSION.txt').file_size > 0
     assert archive.getinfo('_internal/update_public_key.pem').file_size > 0
+    assert archive.getinfo('_internal/premium_config.json').file_size > 0
+    assert archive.getinfo('_internal/friend_codes.txt').file_size > 0
+    assert not any('friend-codes' in name.lower() for name in archive.namelist())
     assert not any(name.lower().endswith('signing-key.pem') for name in archive.namelist())
     assert not any(name.lower().endswith(('.psd', '.dirtgear', '.motogear', '.tga', '.pnt')) for name in archive.namelist())
     print(f'Payload: {len(archive.namelist())} files, {OUTPUT.stat().st_size / 1024 / 1024:.1f} MiB')

@@ -23,7 +23,7 @@
 </svg>
 
 <header class="topbar">
- <div class="brand"><img src="/static/icon.svg" alt="" class="brand-mark"><span class="wordmark">DIRT GEAR</span><button id="versionBtn" class="version" title="About &amp; updates">v1.1.1</button></div>
+ <div class="brand"><img src="/static/icon.svg" alt="" class="brand-mark"><span class="wordmark">DIRT GEAR</span><button id="versionBtn" class="version" title="About &amp; updates">v1.1.1</button><button id="premiumBtn" class="plan-chip" hidden title="Dirt Gear Premium"></button></div>
  <div class="doc-pill" title="Current template"><span class="doc-dot"></span><strong id="fileName">No gear open</strong><span id="fileMeta">Open a PSD to begin</span></div>
  <div class="top-actions">
   <button id="openProject" class="ghost"><svg><use href="#i-file"/></svg>Open project</button>
@@ -154,5 +154,16 @@
  <div id="aboutNotesWrap" hidden><div class="eyebrow">What’s new in <span id="aboutLatest"></span></div><div id="aboutNotes" class="release-notes"></div></div>
  <label class="checkline"><input id="checkOnStart" type="checkbox" checked> Check for updates when Dirt Gear starts</label>
  <div class="dialog-footer"><button id="checkNow">Check for updates</button><button id="aboutInstall" class="primary" hidden>Download and install</button></div></dialog>
+<dialog id="premiumDialog"><div class="dialog-heading"><div><div class="eyebrow">Dirt Gear Premium</div><h2 id="premiumTitle">Unlimited gear sets.</h2></div><button id="closePremium" class="close" aria-label="Close">×</button></div>
+ <p id="premiumSummary"></p>
+ <div id="premiumMeter" class="plan-meter" aria-hidden="true"><span></span></div>
+ <p id="premiumLapsed" class="plan-warning" hidden></p>
+ <div id="premiumFree">
+  <button id="premiumBuy" class="primary plan-buy" type="button">Get Premium</button>
+  <div class="layout-save"><input id="premiumKey" maxlength="120" autocomplete="off" spellcheck="false" aria-label="Licence key or friend code" placeholder="Licence key or friend code"><button id="premiumActivate" type="button">Activate</button></div>
+  <p class="hint">Your licence key arrives by email after you buy. You can manage or cancel the subscription from the link in that email. Got a friend code? Paste it above.</p>
+ </div>
+ <div id="premiumActive" hidden><div class="dialog-footer"><button id="premiumRemove" type="button">Remove from this PC</button></div></div>
+</dialog>
 <input id="psdInput" type="file" accept=".psd" hidden><input id="projectInput" type="file" accept=".dirtgear,.motogear" hidden><input id="artInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" multiple hidden>
 <script src="/static/viewer.js"></script><script src="/static/app.js"></script></body></html>
