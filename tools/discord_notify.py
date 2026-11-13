@@ -16,7 +16,7 @@ if not hook:
     sys.exit(0)
 if hook.endswith('/github'):          # the GitHub-format address won't take custom posts
     hook = hook[: -len('/github')]
-repo = os.environ.get('GITHUB_REPOSITORY', 'fraserjeffery85-afk/Dirt-Gear')
+repo = os.environ.get('GITHUB_REPOSITORY', 'Dirt-Graphic-Studios/Dirt-Gear')
 setup = f'https://github.com/{repo}/releases/download/v{version}/Dirt-Gear-Setup-{version}.exe'
 # Version-pinned address: Discord caches images per URL, so a fixed address
 # would keep showing an old logo after it changes.

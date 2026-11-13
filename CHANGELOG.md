@@ -1,5 +1,10 @@
 # Dirt Gear releases
 
+## v1.1.1 — 2026-11-13
+
+- Dirt Gear now lives under **Dirt Graphic Studios** on GitHub: github.com/Dirt-Graphic-Studios/Dirt-Gear. Updates now come straight from the new address.
+- Nothing else has changed. Old links redirect to the new page.
+
 ## v1.1.0 — 2026-10-31
 
 **Colour overlay for logos**
