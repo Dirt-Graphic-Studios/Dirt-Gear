@@ -142,6 +142,16 @@ KEYS['GOOD-KEY']['status'] = 'active'
 premium.activate('GOOD-KEY'); premium.remove()
 ok(CALLS[-1][0] == 'deactivate' and not premium.status()['premium'], 'Remove from this PC frees the activation')
 
+# -- before the store exists ---------------------------------------------------------
+config.write_text(json.dumps({'enabled': True, 'daily_limit': 5}))
+try:
+    premium.activate('GOOD-KEY'); ok(False, 'coming soon')
+except ValueError as e:
+    ok('coming soon' in str(e) and not premium.status()['can_buy'], 'without a store, keys say Premium is coming soon')
+ok(premium.activate(FRIEND)['premium'], 'friend codes work before the store exists'); premium.remove()
+config.write_text(json.dumps({'enabled': True, 'daily_limit': 5, 'store_id': 111, 'product_ids': [222],
+                              'checkout_url': 'https://example.lemonsqueezy.com/buy/x'}))
+
 # -- through the app ---------------------------------------------------------------
 import app  # noqa: E402
 client = app.app.test_client()

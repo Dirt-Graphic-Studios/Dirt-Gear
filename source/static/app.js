@@ -404,7 +404,9 @@ function renderPremium(info){
  $('premiumSummary').textContent=info.premium?(info.kind==='friend'?'Unlocked with a friend code. Pack and export as many gear sets as you like.':'Thanks for supporting Dirt Gear'+(info.email?' ('+info.email+')':'')+'. Pack and export as many gear sets as you like.'):(info.remaining===0?`You’ve finished all ${info.limit} free gear sets for today. Get Premium for unlimited gear sets, or come back after midnight. Re-packing a gear you’ve already finished today still works.`:`Free: ${info.limit} gear sets a day. You’ve used ${info.used} today, and it resets at midnight. Re-packing or exporting a gear name you’ve already finished today doesn’t use another.`);
  $('premiumMeter').firstElementChild.style.width=Math.min(100,100*info.used/info.limit)+'%';
  $('premiumLapsed').hidden=!info.lapsed;$('premiumLapsed').textContent=info.lapsed||'';
- $('premiumBuy').disabled=!info.can_buy;$('premiumBuy').textContent=info.can_buy?'Get Premium · '+info.price:'Premium is coming soon';
+ $('premiumBuy').disabled=!info.can_buy;$('premiumBuy').textContent=info.can_buy?'Get Premium · '+info.price:'Premium coming soon · '+info.price;
+ $('premiumKey').placeholder=info.can_buy?'Licence key or friend code':'Friend code';
+ $('premiumHint').textContent=info.can_buy?'Your licence key arrives by email after you buy. You can manage or cancel the subscription from the link in that email. Got a friend code? Paste it above.':'Premium subscriptions for unlimited gear sets are coming soon. Got a friend code? Paste it above to unlock unlimited now.';
 }
 async function loadPremium(){try{renderPremium(await(await api('premium/status',undefined,'GET')).json())}catch(e){console.error(e)}}
 function showPremium(info){if(info)renderPremium(info);if(!$('premiumDialog').open)$('premiumDialog').showModal()}

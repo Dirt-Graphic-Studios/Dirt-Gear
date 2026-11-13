@@ -186,6 +186,8 @@ def activate(text: str) -> dict:
             _save('premium.json', {'kind': 'friend', 'code_hash': friend_hash(text), 'since': today()})
         return status()
     cfg = config()
+    if cfg.get('store_id') is None or not cfg.get('product_ids'):
+        raise ValueError('Premium subscriptions are coming soon. Friend codes already work.')
     if len(text) > 100:
         raise ValueError('That doesn’t look like a licence key.')
     try:

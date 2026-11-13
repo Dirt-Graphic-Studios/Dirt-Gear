@@ -1,0 +1,4 @@
+- **Free daily limit:** 5 gear sets a day. A gear set counts when you Pack & install, Export .pnt or export the TGAs. Editing and previewing stay unlimited, and re-packing or exporting a gear you've already finished today is free. The count resets at midnight.
+- A chip next to the version shows how many sets you have left today.
+- **Dirt Gear Premium is coming soon:** unlimited gear sets for $5 USD/month.
+- **Friend codes:** got one? Click the chip and paste it in to unlock unlimited gear sets now.
