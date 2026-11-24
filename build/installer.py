@@ -98,7 +98,33 @@ def refresh_shortcuts(executable: Path) -> None:
             continue
 
 
-def install(target: Path, make_shortcuts: bool = True) -> Path:
+UNINSTALL_KEY = r'Software\Microsoft\Windows\CurrentVersion\Uninstall\DirtGear'
+
+
+def register_uninstall(target: Path) -> None:
+    """List Dirt Gear in Settings > Apps > Installed apps (for this account
+    only), so it can be removed like any other app. This is the only registry
+    key Dirt Gear writes; uninstalling deletes it."""
+    if os.name != 'nt':
+        return
+    import winreg
+    exe = target / 'Dirt Gear.exe'
+    size_kb = sum(f.stat().st_size for f in target.rglob('*') if f.is_file()) // 1024
+    values = {
+        'DisplayName': 'Dirt Gear', 'DisplayVersion': version(), 'Publisher': 'Dirt Graphic Studios',
+        'DisplayIcon': str(exe), 'InstallLocation': str(target),
+        'UninstallString': f'"{exe}" --uninstall', 'QuietUninstallString': f'"{exe}" --uninstall --quiet',
+        'URLInfoAbout': 'https://github.com/Dirt-Graphic-Studios/Dirt-Gear',
+        'HelpLink': 'https://github.com/Dirt-Graphic-Studios/Dirt-Gear/issues',
+    }
+    with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, UNINSTALL_KEY, 0, winreg.KEY_SET_VALUE) as key:
+        for name, value in values.items():
+            winreg.SetValueEx(key, name, 0, winreg.REG_SZ, value)
+        for name, value in (('NoModify', 1), ('NoRepair', 1), ('EstimatedSize', min(size_kb, 0xFFFFFFFF))):
+            winreg.SetValueEx(key, name, 0, winreg.REG_DWORD, value)
+
+
+def install(target: Path, make_shortcuts: bool = True, register: bool = True) -> Path:
     target = target.expanduser().resolve()
     parent = target.parent
     parent.mkdir(parents=True, exist_ok=True)
@@ -147,6 +173,11 @@ def install(target: Path, make_shortcuts: bool = True) -> Path:
             shortcut(programs / 'Dirt Gear.lnk', target / 'Dirt Gear.exe')
         if previous and backup.exists():
             shutil.rmtree(backup)
+        if register:
+            try:
+                register_uninstall(target)
+            except OSError:
+                pass  # the app still works; it just isn't listed in Installed apps
         refresh_icons()
         return target / 'Dirt Gear.exe'
     finally:
@@ -215,12 +246,13 @@ def main() -> None:
     parser.add_argument('--update', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--wait-pid', type=int, default=0, help=argparse.SUPPRESS)
     parser.add_argument('--no-launch', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--no-register', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     target = args.target or Path(os.environ['LOCALAPPDATA']) / 'Programs/Dirt Gear'
     if args.update:
         run_update(target, args.wait_pid, launch=not args.no_launch)
     elif args.quiet:
-        print(install(target, make_shortcuts=not args.no_shortcuts))
+        print(install(target, make_shortcuts=not args.no_shortcuts, register=not args.no_register))
     else:
         if not show_installer(target, make_shortcuts=not args.no_shortcuts):
             raise SystemExit(1)

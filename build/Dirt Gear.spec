@@ -12,7 +12,7 @@ datas = [(os.path.join(SRC, 'static'), 'static'), (os.path.join(SRC, 'fonts'), '
 if os.path.isfile(os.path.join(SRC, 'update_repo.txt')):
     datas.append((os.path.join(SRC, 'update_repo.txt'), '.'))
 binaries = []
-hiddenimports = ['aggdraw', 'webview.platforms.edgechromium']
+hiddenimports = ['aggdraw', 'webview.platforms.edgechromium', 'premium', 'uninstall']
 for package in ('psd_tools', 'skimage', 'scipy'):
     d, b, h = collect_all(package)
     datas += d; binaries += b; hiddenimports += h
