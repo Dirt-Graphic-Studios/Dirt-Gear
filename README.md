@@ -4,13 +4,31 @@ A local Windows editor for MX Bikes rider gear. Open a creator's gear PSD, choos
 
 ## Install
 
-Run **Dirt-Gear-Setup-1.2.0.exe** and choose **Yes**. It installs for your Windows account (no admin needed) and adds Desktop and Start menu shortcuts. Microsoft Edge WebView2 Runtime is required (already on Windows 10/11 in most cases).
+Run **Dirt-Gear-Setup-1.2.0.exe** and choose **Yes**. It installs for your Windows account in `%LOCALAPPDATA%\Programs\Dirt Gear` (no admin needed), adds Desktop and Start menu shortcuts, and lists Dirt Gear in **Settings > Apps > Installed apps**. Microsoft Edge WebView2 Runtime is required (already on Windows 10/11 in most cases).
+
+The setup isn't code-signed yet, so Windows SmartScreen may say it's from an unknown publisher: choose **More info > Run anyway**. Each release is built by GitHub Actions from the public source, and its SHA-256 is in the release's signed `update.json`.
+
+## Uninstall
+
+**Settings > Apps > Installed apps > Dirt Gear > Uninstall** (or run `Dirt Gear.exe --uninstall`). It removes the program folder, the shortcuts and the Installed apps entry, then asks whether to delete your saved projects, logos, layouts and settings in `%LOCALAPPDATA%\Dirt Gear` too. Paints you packed into MX Bikes are never removed. `--uninstall --quiet` removes the app without questions and keeps your saved work (add `--remove-data` to delete it).
+
+## Setup options
+
+The setup also accepts these, mainly for testing and the in-app updater: `--quiet` installs without asking, `--target <folder>` installs somewhere else, `--no-shortcuts` skips the shortcuts, `--no-register` skips the Installed apps entry, and `--update --wait-pid <id> [--no-launch]` is what the updater uses to replace the installed copy after Dirt Gear closes and then reopen it.
 
 If you used Moto Gear, your saved projects, logos and layouts are copied into Dirt Gear the first time it opens. Moto Gear's own folder isn't changed, so both apps can live side by side.
 
 ## Updates
 
-From v1.0.2 Dirt Gear checks for new versions when it starts and offers **Download and install**. You can skip a version, or turn the check off by clicking the version label (top left). Release setup is in `docs/UPDATES.md`.
+Dirt Gear asks GitHub for the latest release a few seconds after it opens and, if there's a newer one, offers **Download and install** or **Skip this version**. Nothing is downloaded or installed until you click. To turn the check off, click the version label (top left) and untick **Check for updates when Dirt Gear starts**: opening that box doesn't contact GitHub, only **Check for updates** does. An update installs only if its `update.json` carries a valid Ed25519 signature from the key built into the app and the download matches the size and SHA-256 it lists. Release setup is in `docs/UPDATES.md`.
+
+## What it sends and stores
+
+- **Network:** only the update check above (`api.github.com`, then GitHub's release downloads when you click Download and install). No account, no analytics, no ads. Your PSDs, designs and paints never leave your PC.
+- **Files:** the program folder, your saved work in `%LOCALAPPDATA%\Dirt Gear`, and the files you choose to save or pack. Pack & install writes `<name>.pnt` into the chosen rider model's `paints` folder, and asks before replacing one with the same name.
+- **Registry:** one key, `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DirtGear`, for the Installed apps entry. Uninstalling deletes it.
+- The window is a page served by Dirt Gear itself on `127.0.0.1` (a random port), and it answers only requests that carry a random token made at each start.
+- `source/premium.py` holds code for a possible future Premium version. It's switched off (`source/premium_config.json`), so it never limits anything or contacts anyone.
 
 ## Using it
 
@@ -21,7 +39,11 @@ From v1.0.2 Dirt Gear checks for new versions when it starts and offers **Downlo
 5. **Under the shading**: drag the green **Your added layers** strip onto a PSD layer to put all your artwork below it. Reorder your own layers by dragging them or using the arrows.
 6. **Check it**: Diffuse / Norm / Spec tabs, **3D preview** on the rider, and **Check final rendering** for the exact export image.
 7. **Finish & ride** (bottom right): name the gear, pick the rider model and click **Pack & install in MX Bikes**. Restart MX Bikes to see it. **Export .pnt** (top bar) or **3 TGAs (.zip)** let you save the files anywhere.
-8. **Save for later** keeps an editable project in your library, and **Continue** is offered on the start screen. **Portable project** saves a `.dirtgear` file you can move to another PC (old `.motogear` files still open).
+8. **Save for later** keeps an editable project in your library on this PC (with a private copy of the PSD so it reopens offline), and **Continue** is offered on the start screen. **Portable project** saves a `.dirtgear` file you can move to another PC. It holds your design and artwork but **never the creator's PSD**: whoever opens it chooses their own copy of the template, and Dirt Gear checks it's the same file (old `.motogear` files still open).
+
+## Use templates fairly
+
+Please only use PSD templates you've bought or been given permission to use by their creator. Dirt Graphic Studios doesn't support or endorse using templates that weren't legitimately obtained. Support the creators who make this community possible.
 
 Saved logos, logo layouts and HEX colour swatches work as they did in Moto Gear v1.3.
 
@@ -35,13 +57,17 @@ Saved logos, logo layouts and HEX colour swatches work as they did in Moto Gear 
 
 `.pnt` files use Dirt Gear's own independent writer (`source/packing.py`).
 
+## Licence and credits
+
+Dirt Gear is © 2026 Dirt Graphic Studios, **all rights reserved**: the source is public so anyone can read and check it, but it isn't open source (see `LICENSE.txt`). Bundled fonts and their licences are listed in `source/fonts/FONTS.md`. Each build includes `THIRD-PARTY-NOTICES.txt` with the licences of Python, Pillow, pywebview, pythonnet, aggdraw, psd-tools, NumPy, SciPy and every other bundled package (made by `tools/third_party_notices.py`). The About box links to all three. Dirt Gear is a fan-made tool and isn't affiliated with MX Bikes or PiBoSo.
+
 ## Limits
 
 8-bit RGB PSDs up to 8192 × 8192. PSD rendering uses psd-tools, not Photoshop, so complex effects can differ, so check the final rendering. Existing PSD text and smart objects can't be edited as text or vectors. The 3D preview uses studio lighting, not the MX Bikes shader.
 
 ## Building (developers)
 
-Releases are built automatically: changing `VERSION.txt` on main (or running the workflow from the Actions tab) runs `.github/workflows/release.yml` on a GitHub Windows machine. It builds the app and installer, clean-installs it, runs the backend tests against the installed copy, and then publishes `Dirt Gear vX Setup.exe` on the Releases page.
+Releases are built automatically: changing `VERSION.txt` on main (or running the workflow from the Actions tab) runs `.github/workflows/release.yml` on a GitHub Windows machine. It installs the exact package versions in `source/requirements.txt` and `build/requirements-build.txt` (actions are pinned to commit SHAs), builds the app and installer, clean-installs it, runs the backend tests against the installed copy, tests the self-update and the uninstaller, and then publishes `Dirt-Gear-Setup-X.exe` on the Releases page. If a build fails, its log is saved to the `ci-logs` branch.
 
 To build locally instead:
 

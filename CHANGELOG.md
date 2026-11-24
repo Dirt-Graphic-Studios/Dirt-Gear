@@ -1,8 +1,17 @@
 # Dirt Gear releases
 
-## Unreleased
+## v1.2.0 — 2026-11-24
 
-- Premium groundwork (5 free gear sets a day, $5/month Premium, friend codes) is built in but switched off in `source/premium_config.json`. Nothing changes for users. See docs/PREMIUM.md to turn it on later.
+This update follows an independent review of Dirt Gear's code and installer.
+
+- **Uninstall like any other app.** Dirt Gear now appears in **Settings > Apps > Installed apps**, and Uninstall removes the program and shortcuts. It asks before deleting your saved projects, logos and layouts, and never touches paints you packed into MX Bikes.
+- **Portable projects no longer include the creator's PSD.** Whoever opens one chooses their own copy of the template, and Dirt Gear checks it's the same file. Save for later still keeps a private copy on your PC so Continue works.
+- **Use templates fairly:** please only use PSD templates you've bought or been given permission to use. Dirt Graphic Studios doesn't support or endorse templates that weren't legitimately obtained.
+- **Fonts:** removed the bundled fonts whose makers don't allow them to be shared (the Fasthouse and KTM style fonts, Misfits, MX Regular and `mx font 1.2`–`4`). If you own one, install it in Windows and it shows up in Dirt Gear again. Names and numbers you already made keep their look.
+- **Updates:** opening the About box no longer checks GitHub by itself. Only "Check for updates" does, or the check at start if it's on.
+- **Credits:** the About box now links to the licence, third-party notices and font credits, all included with the app.
+- Dirt Gear's code is now published as **All rights reserved**: public to read and check, but not open source.
+- Builds now use pinned package versions, and the release workflow tests the uninstaller too.
 
 ## v1.1.1 — 2026-11-13
 
