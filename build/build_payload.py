@@ -14,7 +14,7 @@ with ZipFile(OUTPUT, 'w', compression=ZIP_DEFLATED, compresslevel=6, allowZip64=
         if any(part.lower() in ('tests', '__pycache__') for part in relative.parts):
             continue
         archive.write(path, relative.as_posix())
-    for doc in ('README.md', 'VERSION.txt', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.txt'):
+    for doc in ('README.md', 'VERSION.txt', 'CHANGELOG.md', 'LICENSE.txt', 'THIRD-PARTY-NOTICES.txt'):
         if (ROOT / doc).is_file():
             archive.write(ROOT / doc, doc)
 
@@ -26,6 +26,9 @@ with ZipFile(OUTPUT) as archive:
     assert archive.getinfo('_internal/update_public_key.pem').file_size > 0
     assert archive.getinfo('_internal/premium_config.json').file_size > 0
     assert archive.getinfo('_internal/friend_codes.txt').file_size > 0
+    assert archive.getinfo('LICENSE.txt').file_size > 0
+    assert archive.getinfo('THIRD-PARTY-NOTICES.txt').file_size > 10_000, 'run tools/third_party_notices.py first'
+    assert archive.getinfo('_internal/fonts/FONTS.md').file_size > 0
     assert not any('friend-codes' in name.lower() for name in archive.namelist())
     assert not any(name.lower().endswith('signing-key.pem') for name in archive.namelist())
     assert not any(name.lower().endswith(('.psd', '.dirtgear', '.motogear', '.tga', '.pnt')) for name in archive.namelist())

@@ -8,8 +8,8 @@ $Version = (Get-Content VERSION.txt).Trim()
 
 if (-not (Test-Path .venv)) { py -3.12 -m venv .venv }
 $Py = Join-Path $Root '.venv\Scripts\python.exe'
-& $Py -m pip install --upgrade pip
-& $Py -m pip install -r source\requirements.txt pyinstaller scipy scikit-image aggdraw
+& $Py -m pip install -r source\requirements.txt -r build\requirements-build.txt
+& $Py tools\third_party_notices.py THIRD-PARTY-NOTICES.txt
 
 # 1. Application folder (dist\Dirt Gear\Dirt Gear.exe + _internal)
 & $Py -m PyInstaller --noconfirm --distpath dist --workpath work 'build\Dirt Gear.spec'

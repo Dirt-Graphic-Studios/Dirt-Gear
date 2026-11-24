@@ -1,0 +1,34 @@
+Dirt Gear
+Copyright (c) 2026 Dirt Graphic Studios. All rights reserved.
+
+The Dirt Gear source code is public so anyone can read it and check what the
+app does. It is not open source.
+
+You may:
+  - download the official Dirt Gear releases and use them, free of charge;
+  - read the source code, and build it yourself to check that it matches a
+    release;
+  - view and fork this repository on GitHub, as GitHub's Terms of Service allow.
+
+You may not, without written permission from Dirt Graphic Studios:
+  - copy, modify, merge, publish, distribute, sublicense or sell the source
+    code or the app, in whole or in part, or versions you have changed;
+  - use the source code, or any part of it, in another program;
+  - remove or work around any feature or limit of the app and share the result;
+  - use the Dirt Gear or Dirt Graphic Studios names or logos for your own
+    products.
+
+Third-party software and fonts included with Dirt Gear stay under their own
+licences: see THIRD-PARTY-NOTICES.txt (in the installed app) and
+source/fonts/FONTS.md.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+To ask for permission, open an issue at
+https://github.com/Dirt-Graphic-Studios/Dirt-Gear/issues
