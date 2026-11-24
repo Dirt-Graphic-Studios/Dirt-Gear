@@ -1,0 +1,33 @@
+Run: https://github.com/Dirt-Graphic-Studios/Dirt-Gear/actions/runs/45422454004 (commit 7d4259806b38e9bd522475cd73cecf85f61adfd3)
+windows	Uninstall test	﻿2026-11-24T15:15:31.9303240Z ##[group]Run # The installer lists Dirt Gear in Installed apps; uninstalling removes the
+windows	Uninstall test	2026-11-24T15:15:31.9303985Z ^[[36;1m# The installer lists Dirt Gear in Installed apps; uninstalling removes the^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9304547Z ^[[36;1m# entry and the program folder, and keeps saved work unless asked.^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9305170Z ^[[36;1m$t = "$env:RUNNER_TEMP\un"; $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DirtGear'^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9305784Z ^[[36;1mNew-Item -ItemType Directory -Force "$t\lad\Dirt Gear\Projects" | Out-Null^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9306334Z ^[[36;1mSet-Content "$t\lad\Dirt Gear\Projects\keep.txt" 'saved work'^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9307036Z ^[[36;1mStart-Process -Wait -FilePath "release\Dirt-Gear-Setup-$env:VERSION.exe" -ArgumentList '--quiet','--no-shortcuts','--target',"$t\app"^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9307713Z ^[[36;1m$entry = Get-ItemProperty $key^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9308513Z ^[[36;1mif ($entry.DisplayVersion -ne $env:VERSION -or $entry.Publisher -ne 'Dirt Graphic Studios' -or $entry.UninstallString -notlike '*--uninstall*') { throw "Bad Installed apps entry: $($entry | Out-String)" }^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9309399Z ^[[36;1m$env:LOCALAPPDATA = "$t\lad"^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9309908Z ^[[36;1mStart-Process -Wait -FilePath "$t\app\Dirt Gear.exe" -ArgumentList '--uninstall','--quiet'^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9310513Z ^[[36;1mfor ($i = 0; $i -lt 30 -and (Test-Path "$t\app"); $i++) { Start-Sleep 1 }^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9311054Z ^[[36;1mif (Test-Path "$t\app") { throw 'Uninstall did not remove the program folder' }^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9311634Z ^[[36;1mif (Test-Path $key) { throw 'Uninstall did not remove the Installed apps entry' }^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9312743Z ^[[36;1mif (-not (Test-Path "$t\lad\Dirt Gear\Projects\keep.txt")) { throw 'Uninstall deleted saved work without being asked' }^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9313546Z ^[[36;1mWrite-Host 'Uninstall OK'^[[0m
+windows	Uninstall test	2026-11-24T15:15:31.9379239Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+windows	Uninstall test	2026-11-24T15:15:31.9379798Z env:
+windows	Uninstall test	2026-11-24T15:15:31.9380127Z   HAS_SIGNING_KEY: true
+windows	Uninstall test	2026-11-24T15:15:31.9380615Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.12.10\x64
+windows	Uninstall test	2026-11-24T15:15:31.9381260Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.12.10\x64/lib/pkgconfig
+windows	Uninstall test	2026-11-24T15:15:31.9381841Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+windows	Uninstall test	2026-11-24T15:15:31.9382422Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+windows	Uninstall test	2026-11-24T15:15:31.9382939Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.12.10\x64
+windows	Uninstall test	2026-11-24T15:15:31.9383407Z   VERSION: 1.2.0
+windows	Uninstall test	2026-11-24T15:15:31.9383698Z ##[endgroup]
+windows	Uninstall test	2026-11-24T15:16:09.2108360Z ^[[31;1mException: ^[[0mD:\a\_temp\64391ca0-b47e-409b-8bcf-45bce66d2033.ps1:13^[[0m
+windows	Uninstall test	2026-11-24T15:16:09.2109302Z ^[[31;1m^[[0m^[[36;1mLine |^[[0m
+windows	Uninstall test	2026-11-24T15:16:09.2110312Z ^[[31;1m^[[0m^[[36;1m^[[36;1m  13 | ^[[0m … ath "$t\app") { ^[[36;1mthrow 'Uninstall did not remove the program folder'^[[0m }^[[0m
+windows	Uninstall test	2026-11-24T15:16:09.2111538Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m     | ^[[31;1m                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^[[0m
+windows	Uninstall test	2026-11-24T15:16:09.2112437Z ^[[31;1m^[[0m^[[36;1m^[[36;1m^[[0m^[[36;1m^[[0m^[[36;1m^[[31;1m^[[31;1m^[[36;1m     | ^[[31;1mUninstall did not remove the program folder^[[0m
+windows	Uninstall test	2026-11-24T15:16:09.2361985Z ##[error]Process completed with exit code 1.
