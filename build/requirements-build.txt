@@ -1,0 +1,2 @@
+# Build-only tools (not bundled except PyInstaller's bootloader).
+pyinstaller==6.22.3

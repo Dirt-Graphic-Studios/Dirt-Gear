@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   windows:
@@ -19,16 +20,16 @@ jobs:
     env:
       HAS_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: '3.12'
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r source/requirements.txt pyinstaller scipy scikit-image aggdraw
+          python -m pip install -r source/requirements.txt -r build/requirements-build.txt
+          python -m pip freeze
 
       - name: Updater tests
         run: python tests/test_updater.py
@@ -44,6 +45,12 @@ jobs:
 
       - name: Premium tests
         run: python tests/test_premium.py
+
+      - name: Portable project tests
+        run: python tests/test_portable_project.py
+
+      - name: Third-party notices
+        run: python tools/third_party_notices.py THIRD-PARTY-NOTICES.txt
 
       - name: Build app
         env:
@@ -77,8 +84,9 @@ jobs:
           $t = "$env:RUNNER_TEMP\dg"
           New-Item -ItemType Directory -Force "$t\fixtures", "$t\lad\Moto Gear\Logos" | Out-Null
           # Clean install into a test folder
-          Start-Process -Wait -FilePath "release\Dirt-Gear-Setup-$env:VERSION.exe" -ArgumentList '--quiet','--no-shortcuts','--target',"$t\app"
+          Start-Process -Wait -FilePath "release\Dirt-Gear-Setup-$env:VERSION.exe" -ArgumentList '--quiet','--no-shortcuts','--no-register','--target',"$t\app"
           if (-not (Test-Path "$t\app\Dirt Gear.exe")) { throw 'Installer did not produce Dirt Gear.exe' }
+          foreach ($f in 'LICENSE.txt','THIRD-PARTY-NOTICES.txt','_internal\fonts\FONTS.md') { if (-not (Test-Path "$t\app\$f")) { throw "Missing $f" } }
           # Launch the installed copy headless with an isolated LOCALAPPDATA
           $env:LOCALAPPDATA = "$t\lad"
           Start-Process -FilePath "$t\app\Dirt Gear.exe" -ArgumentList '--no-browser','--session-file',"$t\session.json"
@@ -115,7 +123,7 @@ jobs:
             @{ name = 'update.json.sig'; browser_download_url = "$base/dl/update.json.sig" }) } | ConvertTo-Json -Depth 4
           Set-Content -Path "$fake\repos\$env:GITHUB_REPOSITORY\releases\latest" -Value $release -NoNewline
           Start-Process -FilePath python -ArgumentList '-m','http.server','8799','--bind','127.0.0.1' -WorkingDirectory $fake
-          Start-Process -Wait -FilePath "release\Dirt-Gear-Setup-$env:VERSION.exe" -ArgumentList '--quiet','--no-shortcuts','--target',"$t\app"
+          Start-Process -Wait -FilePath "release\Dirt-Gear-Setup-$env:VERSION.exe" -ArgumentList '--quiet','--no-shortcuts','--no-register','--target',"$t\app"
           $env:LOCALAPPDATA = "$t\lad"; $env:DIRT_GEAR_UPDATE_API = $base
           $app = Start-Process -PassThru -FilePath "$t\app\Dirt Gear.exe" -ArgumentList '--no-browser','--session-file',"$t\session.json"
           for ($i = 0; $i -lt 60 -and -not (Test-Path "$t\session.json"); $i++) { Start-Sleep 1 }
@@ -133,6 +141,25 @@ jobs:
           for ($i = 0; $i -lt 60 -and -not $relaunched; $i++) { Start-Sleep 1; $relaunched = Get-Process -Name 'Dirt Gear' -ErrorAction SilentlyContinue }
           if ($relaunched) { Write-Host 'Self-update OK: app closed, files replaced, app reopened'; $relaunched | Stop-Process -Force }
           else { Write-Warning 'Files were updated, but the reopened window was not seen (CI machines may not show desktop windows).' }
+
+      - name: Uninstall test
+        shell: pwsh
+        run: |
+          # The installer lists Dirt Gear in Installed apps; uninstalling removes the
+          # entry and the program folder, and keeps saved work unless asked.
+          $t = "$env:RUNNER_TEMP\un"; $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DirtGear'
+          New-Item -ItemType Directory -Force "$t\lad\Dirt Gear\Projects" | Out-Null
+          Set-Content "$t\lad\Dirt Gear\Projects\keep.txt" 'saved work'
+          Start-Process -Wait -FilePath "release\Dirt-Gear-Setup-$env:VERSION.exe" -ArgumentList '--quiet','--no-shortcuts','--target',"$t\app"
+          $entry = Get-ItemProperty $key
+          if ($entry.DisplayVersion -ne $env:VERSION -or $entry.Publisher -ne 'Dirt Graphic Studios' -or $entry.UninstallString -notlike '*--uninstall*') { throw "Bad Installed apps entry: $($entry | Out-String)" }
+          $env:LOCALAPPDATA = "$t\lad"
+          Start-Process -Wait -FilePath "$t\app\Dirt Gear.exe" -ArgumentList '--uninstall','--quiet'
+          for ($i = 0; $i -lt 30 -and (Test-Path "$t\app"); $i++) { Start-Sleep 1 }
+          if (Test-Path "$t\app") { throw 'Uninstall did not remove the program folder' }
+          if (Test-Path $key) { throw 'Uninstall did not remove the Installed apps entry' }
+          if (-not (Test-Path "$t\lad\Dirt Gear\Projects\keep.txt")) { throw 'Uninstall deleted saved work without being asked' }
+          Write-Host 'Uninstall OK'
 
       - name: Publish release
         env:
@@ -157,7 +184,29 @@ jobs:
         run: python tools/discord_notify.py "${{ env.VERSION }}" notes.md "https://github.com/${{ github.repository }}/releases/tag/v${{ env.VERSION }}"
 
       - name: Keep build as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: Dirt-Gear-Setup
           path: release/*.exe
+
+  # If the build fails, save the failed steps' log to the ci-logs branch so it
+  # can be read without opening the Actions page.
+  failure-log:
+    needs: windows
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Save failed log to the ci-logs branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run view ${{ github.run_id }} -R ${{ github.repository }} --log-failed > failed.log 2>&1 || true
+          tail -c 300000 failed.log > last-failure.log
+          echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} (commit ${{ github.sha }})" | cat - last-failure.log > tmp && mv tmp last-failure.log
+          git init -q logs && mv last-failure.log logs/ && cd logs
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git checkout -q --orphan ci-logs && git add last-failure.log && git commit -qm "Failed build log: run ${{ github.run_id }}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" ci-logs
