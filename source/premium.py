@@ -83,22 +83,31 @@ def _path(name: str) -> Path:
 
 
 def _load(name: str) -> dict:
-    try:
-        data = json.loads(_path(name).read_text(encoding='utf-8'))
-        return data if isinstance(data, dict) else {}
-    except (OSError, ValueError):
-        return {}
+    with _lock:
+        try:
+            data = json.loads(_path(name).read_text(encoding='utf-8'))
+            return data if isinstance(data, dict) else {}
+        except (OSError, ValueError):
+            return {}
 
 
 def _save(name: str, data: dict | None):
-    path = _path(name)
-    if data is None:
-        path.unlink(missing_ok=True)
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name+'.tmp')
-    temporary.write_text(json.dumps(data, indent=1), encoding='utf-8')
-    temporary.replace(path)
+    with _lock:
+        path = _path(name)
+        if data is None:
+            path.unlink(missing_ok=True)
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = path.with_name(path.name+'.tmp')
+        temporary.write_text(json.dumps(data, indent=1), encoding='utf-8')
+        for attempt in range(20):
+            try:
+                temporary.replace(path)
+                return
+            except PermissionError:  # Windows: another program (antivirus, backup) has it open
+                if attempt == 19:
+                    raise
+                time.sleep(0.05)
 
 
 def today() -> str:
@@ -271,6 +280,13 @@ def _recheck_soon(saved: dict):
         finally:
             _checking = False
     threading.Thread(target=run, daemon=True).start()
+
+
+def wait_idle(timeout: float = 10):
+    """Wait for a background licence check to finish (used by tests)."""
+    end = time.monotonic() + timeout
+    while _checking and time.monotonic() < end:
+        time.sleep(0.02)
 
 
 def premium_state() -> tuple[bool, dict, str]:

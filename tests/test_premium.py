@@ -119,23 +119,23 @@ ok(not premium.status()['premium'], 'unknown, other-store and expired keys are r
 ok(any(c[0] == 'deactivate' for c in CALLS), 'a key from another store is released again')
 st = premium.activate('GOOD-KEY')
 ok(st['premium'] and st['kind'] == 'license' and st['email'] == 'rider@example.com', 'an active subscription key unlocks Premium')
-saved = json.loads((TMP/'appdata/Dirt Gear/premium.json').read_text())
+premium.wait_idle(); saved = json.loads((TMP/'appdata/Dirt Gear/premium.json').read_text())
 ok(saved['instance_id'] == 'inst-1' and CALLS[-1][1]['instance_name'], 'activation stores the instance for this PC')
 
-saved['checked_at'] = time.time() - 2*86400; (TMP/'appdata/Dirt Gear/premium.json').write_text(json.dumps(saved))
+saved['checked_at'] = time.time() - 2*86400; premium.wait_idle(); (TMP/'appdata/Dirt Gear/premium.json').write_text(json.dumps(saved))
 OFFLINE['on'] = True
 premium.revalidate()
 ok(premium.status()['premium'], 'offline re-check keeps Premium during the grace period')
-saved = json.loads((TMP/'appdata/Dirt Gear/premium.json').read_text())
-saved['checked_at'] = time.time() - 8*86400; (TMP/'appdata/Dirt Gear/premium.json').write_text(json.dumps(saved))
+premium.wait_idle(); saved = json.loads((TMP/'appdata/Dirt Gear/premium.json').read_text())
+saved['checked_at'] = time.time() - 8*86400; premium.wait_idle(); (TMP/'appdata/Dirt Gear/premium.json').write_text(json.dumps(saved))
 st = premium.status()
 ok(not st['premium'] and 'week' in st['lapsed'], 'more than a week offline pauses Premium')
 OFFLINE['on'] = False
-premium.revalidate()
+premium.wait_idle(); premium.revalidate()
 ok(premium.status()['premium'], 'coming back online restores Premium')
 
 KEYS['GOOD-KEY']['status'] = 'expired'
-premium.revalidate()
+premium.wait_idle(); premium.revalidate()
 st = premium.status()
 ok(not st['premium'] and 'expired' in st['lapsed'], 'a cancelled/expired subscription removes Premium at the next check')
 KEYS['GOOD-KEY']['status'] = 'active'
