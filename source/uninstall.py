@@ -72,13 +72,24 @@ def is_program_folder(folder: Path) -> bool:
             and (folder/'_internal/static/app.js').is_file() and len(folder.parts) > 2)
 
 
-def delete_after_exit(folder: Path) -> None:
+def delete_after_exit(folder: Path) -> Path:
     """Dirt Gear can't delete its own running files, so a hidden PowerShell
-    waits for this process to close, then removes the program folder."""
-    script = (f'Wait-Process -Id {os.getpid()} -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; '
-              f'Remove-Item -LiteralPath {_ps_quote(folder)} -Recurse -Force -ErrorAction SilentlyContinue')
-    subprocess.Popen(['powershell.exe', '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', script],
-                     creationflags=0x08000000 | 0x00000008 | 0x00000200, close_fds=True)
+    waits for this process to close, then removes the program folder
+    (retrying while Windows or antivirus still holds a file). It writes what
+    it did to %TEMP%\\dirt-gear-uninstall.log."""
+    log = Path(os.environ.get('TEMP', str(folder.parent)))/'dirt-gear-uninstall.log'
+    script = (f'$p = {_ps_quote(folder)}; $log = {_ps_quote(log)}; '
+              f'"Waiting for Dirt Gear (process {os.getpid()}) to close" | Out-File $log -Encoding utf8; '
+              f'Wait-Process -Id {os.getpid()} -Timeout 60 -ErrorAction SilentlyContinue; '
+              'for ($i = 0; $i -lt 30 -and (Test-Path -LiteralPath $p); $i++) { '
+              'try { Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Stop } '
+              'catch { "Try $($i+1): $($_.Exception.Message)" | Out-File $log -Append -Encoding utf8; Start-Sleep -Seconds 1 } }; '
+              'if (Test-Path -LiteralPath $p) { "Could not remove $p" | Out-File $log -Append -Encoding utf8 } '
+              'else { "Removed $p" | Out-File $log -Append -Encoding utf8 }')
+    subprocess.Popen(['powershell.exe', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+                     creationflags=0x08000000 | 0x00000200, close_fds=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return log
 
 
 def run(data_folder: Path, quiet: bool = False, remove_data: bool = False) -> int:

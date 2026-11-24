@@ -155,9 +155,14 @@ jobs:
           if ($entry.DisplayVersion -ne $env:VERSION -or $entry.Publisher -ne 'Dirt Graphic Studios' -or $entry.UninstallString -notlike '*--uninstall*') { throw "Bad Installed apps entry: $($entry | Out-String)" }
           $env:LOCALAPPDATA = "$t\lad"
           Start-Process -Wait -FilePath "$t\app\Dirt Gear.exe" -ArgumentList '--uninstall','--quiet'
-          for ($i = 0; $i -lt 30 -and (Test-Path "$t\app"); $i++) { Start-Sleep 1 }
-          if (Test-Path "$t\app") { throw 'Uninstall did not remove the program folder' }
+          for ($i = 0; $i -lt 60 -and (Test-Path "$t\app"); $i++) { Start-Sleep 1 }
           if (Test-Path $key) { throw 'Uninstall did not remove the Installed apps entry' }
+          if (Test-Path "$t\app") {
+            Get-Content "$env:TEMP\dirt-gear-uninstall.log" -ErrorAction SilentlyContinue
+            Get-ChildItem -Recurse "$t\app" | Select-Object -First 20 FullName
+            throw 'Uninstall did not remove the program folder'
+          }
+          Get-Content "$env:TEMP\dirt-gear-uninstall.log" -ErrorAction SilentlyContinue
           if (-not (Test-Path "$t\lad\Dirt Gear\Projects\keep.txt")) { throw 'Uninstall deleted saved work without being asked' }
           Write-Host 'Uninstall OK'
 
