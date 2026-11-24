@@ -188,28 +188,3 @@ jobs:
         with:
           name: Dirt-Gear-Setup
           path: release/*.exe
-
-  # If the build fails, save the failed steps' log to the ci-logs branch so it
-  # can be read without opening the Actions page.
-  failure-log:
-    needs: windows
-    if: failure()
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: read
-    steps:
-      - name: Save failed log to the ci-logs branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          # The run is still "in progress" while this job runs, so read the finished Windows job's log.
-          job=$(gh run view ${{ github.run_id }} -R ${{ github.repository }} --json jobs --jq '.jobs[] | select(.name=="windows") | .databaseId')
-          gh run view -R ${{ github.repository }} --job "$job" --log-failed > failed.log 2>&1 || true
-          [ -s failed.log ] || gh run view -R ${{ github.repository }} --job "$job" --log > failed.log 2>&1 || true
-          tail -c 300000 failed.log > last-failure.log
-          echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} (commit ${{ github.sha }})" | cat - last-failure.log > tmp && mv tmp last-failure.log
-          git init -q logs && mv last-failure.log logs/ && cd logs
-          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
-          git checkout -q --orphan ci-logs && git add last-failure.log && git commit -qm "Failed build log: run ${{ github.run_id }}"
-          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" ci-logs

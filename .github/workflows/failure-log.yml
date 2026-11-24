@@ -1,0 +1,31 @@
+name: Save failed build log
+
+# When "Build & release" fails, save the failed steps' log to the ci-logs
+# branch, so it can be read with git without opening the Actions page.
+# (It runs after the whole run has finished, when its logs are available.)
+on:
+  workflow_run:
+    workflows: ['Build & release']
+    types: [completed]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  save-log:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save failed log to the ci-logs branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          gh run view "$RUN_ID" -R "$GITHUB_REPOSITORY" --log-failed > failed.log 2>&1 || true
+          { echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$RUN_ID (commit $RUN_SHA)"; tail -c 300000 failed.log; } > last-failure.log
+          git init -q logs && mv last-failure.log logs/ && cd logs
+          git config user.name github-actions && git config user.email github-actions@users.noreply.github.com
+          git checkout -q --orphan ci-logs && git add last-failure.log && git commit -qm "Failed build log: run $RUN_ID"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-logs
