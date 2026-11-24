@@ -1,0 +1,66 @@
+# Fonts bundled with Dirt Gear
+
+Dirt Gear lists every font installed on your PC, plus the fonts in this folder.
+
+## Free licence
+
+| File | Font | Licence |
+| --- | --- | --- |
+| `mx font 1.ttf` | Racing Sans One by Pablo Impallari and Rodrigo Fuenzalida | SIL Open Font License 1.1 (`mx font 1 - Racing Sans One - OFL.txt`) |
+
+## MX Bikes community fonts
+
+These BYD and MxFont sets are shared in the MX Bikes paint community for rider names and numbers, and are included with the permission Dirt Graphic Studios holds for them. Their font files carry no licence of their own. If you made one of these fonts and want it credited differently or removed, open an issue on the Dirt Gear GitHub page and we'll act on it promptly.
+
+- `BYD-Font-US-Army.otf`
+- `BYD-Name-Font-BYD-New.otf`
+- `BYD-Name-Font-Fasthouse-Logo-Font-1.otf`
+- `BYD-Name-Font-Race-New.otf`
+- `BYD-Name-Font-Stock-New.otf`
+- `BYD-Name-Font-Tag.otf`
+- `BYD-Number-Font-Limited.otf`
+- `BYD-Number-Font-Race.otf`
+- `BYD-Number-Font-Shift.otf`
+- `BYD-Number-Font-Stock-1.otf`
+- `BYD-Number-Font-Stock-Special-1.otf`
+- `BYD-Number-Font-UNYK.otf`
+- `byd_number_font.otf`
+- `MxFont - Forward.otf`
+- `MxFont - Graffiti.otf`
+- `MxFont - Hybrid.otf`
+- `MxFont - Phantom.otf`
+- `MxFont - Racer.otf`
+- `MxFont - Renen.otf`
+- `MxFont - Speed.otf`
+- `MxFont - Sport.otf`
+- `MxFont - Tech.otf`
+- `MxFont - Troy Lee Designs.otf`
+- `MxFont - Ultra.otf`
+- `MxFont-101.otf`
+- `MxFont-102.otf`
+- `MxFont-103.otf`
+- `MxFont-104.otf`
+- `MxFont-105.otf`
+- `MxFont-106.otf`
+- `MxFont-107.otf`
+- `MxFont-108.otf`
+- `MxFont-109.otf`
+- `MxFont-110.otf`
+- `MxFont-111.otf`
+- `MxFont-112.otf`
+- `MxFont-113.otf`
+- `MxFont-114.otf`
+- `MxFont-115.otf`
+- `MxFont-116.otf`
+- `MxFont-117.otf`
+- `MxFont-118.otf`
+- `MxFont-119.otf`
+- `MxFont-120.otf`
+- `MxFont-121.otf`
+- `mx fonts.otf`
+
+## Removed in v1.2.0
+
+These fonts were bundled up to v1.1.1, but their makers' terms don't allow them to be redistributed (for example "All rights reserved" or "personal use only"), so they were removed: the Fasthouse and KTM style fonts (Sub Communications, House Industries), Misfits, MX Regular (wap studio), and `mx font 1.2`–`1.5`, `2`, `3` and `4` (Dharmas Studio, Ragamkata Studio, RaisProject, Letterara, Erifqizefont, Sensatype).
+
+If you own a licence for any of them, install the font in Windows (right-click the file > Install) and Dirt Gear lists it again. Names and numbers you already made with them keep their look in saved projects.
