@@ -325,3 +325,7 @@ textarea{resize:vertical;font-size:15px!important;font-weight:600;letter-spacing
 @media(max-height:860px){.export-note{display:none}.export-panel .name-label{margin-top:8px}#installPnt{margin-top:10px}}
 @media(max-width:1120px){.added-group .role{display:none}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.about-note{margin-top:12px;font-size:12.5px;line-height:1.5}
+.about-note a{color:var(--soft)}
+.about-note a:hover{color:var(--text)}

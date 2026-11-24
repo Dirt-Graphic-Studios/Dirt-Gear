@@ -2,6 +2,7 @@ from collections import OrderedDict
 import argparse
 import configparser
 import base64
+import hashlib
 import io
 import json
 import logging
@@ -39,6 +40,7 @@ TEMP = tempfile.TemporaryDirectory(prefix='dirt-gear-')
 WORK = Path(TEMP.name)
 LOCK = threading.RLock()
 DOC = None
+PENDING_PROJECT = None  # a portable project waiting for the user's own copy of its PSD
 PORT = 0
 LAST_HEARTBEAT = time.monotonic()
 FONTS = {}
@@ -681,6 +683,28 @@ def update_check():
     return jsonify(result)
 
 
+@app.post('/api/open-notices')
+def open_notices():
+    """Open the licence and third-party notices that ship with the app."""
+    kind = (request.get_json() or {}).get('kind')
+    folder = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).resolve().parents[1]
+    path = {'license': folder/'LICENSE.txt', 'notices': folder/'THIRD-PARTY-NOTICES.txt',
+            'fonts': ROOT/'fonts/FONTS.md'}.get(kind)
+    if path is None or not path.is_file():
+        raise ValueError('That file isn’t included in this copy of Dirt Gear.')
+    if os.name == 'nt':
+        os.startfile(str(path))  # noqa: S606 - a fixed, bundled text file
+    return jsonify(ok=True, path=str(path))
+
+
+@app.get('/api/update/settings')
+def get_update_settings():
+    """The About box reads this when it opens; it never contacts GitHub."""
+    settings = load_settings()
+    return jsonify(check_on_start=settings.get('check_on_start', True), current=updater.app_version(),
+                   enabled=bool(updater.update_repo()))
+
+
 @app.post('/api/update/settings')
 def update_settings():
     data = request.get_json() or {}
@@ -1094,7 +1118,7 @@ def library_root():
 
 
 def library_item(key):
-    if not re.fullmatch(r'[0-9a-f]{32}', key):
+    if not re.fullmatch(r'[0-9A-Za-z_-]{1,64}', str(key)):
         abort(404)
     path = library_root() / (key + '.png')
     if not path.is_file():
@@ -1109,7 +1133,7 @@ def layouts_root():
 
 
 def layout_path(key):
-    if not re.fullmatch(r'[0-9a-f]{32}', key):
+    if not re.fullmatch(r'[0-9A-Za-z_-]{1,64}', str(key)):
         abort(404)
     path = layouts_root() / (key + '.zip')
     if not path.is_file():
@@ -1370,33 +1394,74 @@ def project_library():
     return local_app_data()/APP_DATA_NAME/'Projects'
 
 
-def project_bytes(doc):
+def file_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, 'rb') as f:
+        for block in iter(lambda: f.read(1024*1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def project_bytes(doc, include_psd):
+    """A project zip. Saves in the user's own library keep a private copy of
+    the PSD so they reopen on this PC. A *portable* project (a file meant to
+    move to another PC) never contains the creator's PSD: it records the PSD's
+    name, size and SHA-256, and the user picks their own copy when opening it."""
+    psd = {'filename': doc.name, 'size': Path(doc.path).stat().st_size, 'sha256': file_sha256(doc.path)}
     out = io.BytesIO()
     with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
-        z.write(doc.path, 'template.psd')
-        z.writestr('project.json', json.dumps({'version':1,'filename':doc.name,'state':doc.state,
+        if include_psd:
+            z.write(doc.path, 'template.psd')
+        z.writestr('project.json', json.dumps({'version':2,'filename':doc.name,'psd':psd,'state':doc.state,
             'assets':{k:v['name'] for k,v in doc.assets.items()}}))
         for key,val in doc.assets.items():
             z.writestr('artwork/'+key+'.png', png(val['image']))
     return out.getvalue()
 
 
-def load_project(stream, saved_path=None):
+def _project_parts(stream):
     with zipfile.ZipFile(stream) as z:
         if sum(i.file_size for i in z.infolist()) > 2*1024**3:
             raise ValueError('Project is too large.')
         config = json.loads(z.read('project.json'))
-        if config.get('version') != 1:
-            raise ValueError('Unsupported project version')
-        path = WORK/(uuid.uuid4().hex+'.psd')
-        path.write_bytes(z.read('template.psd'))
-        doc = Document(path, config['filename'])
+        if config.get('version') not in (1, 2):
+            raise ValueError('This project was made by a newer Dirt Gear. Update Dirt Gear to open it.')
+        assets = {}
         for key,name in config['assets'].items():
-            image = Image.open(io.BytesIO(z.read('artwork/'+key+'.png'))).convert('RGBA')
-            doc.assets[key] = {'name': name, 'image': image}
-        doc.update(config['state'])
-        doc.quick_save_path = saved_path
-        return doc
+            if not re.fullmatch(r'[0-9A-Za-z_-]{1,64}', str(key)):
+                raise ValueError('The project contains an invalid artwork name.')
+            assets[key] = {'name': name, 'image': Image.open(io.BytesIO(z.read('artwork/'+key+'.png'))).convert('RGBA')}
+        psd_bytes = z.read('template.psd') if 'template.psd' in z.namelist() else None
+    return config, assets, psd_bytes
+
+
+def _project_document(path, filename, config, assets, saved_path=None):
+    doc = Document(path, filename)
+    doc.assets.update(assets)
+    doc.update(config['state'])
+    doc.quick_save_path = saved_path
+    return doc
+
+
+def load_project(stream, saved_path=None):
+    """Returns the Document, or None when it's a portable project that needs
+    its PSD (it is then kept in PENDING_PROJECT until attach_psd)."""
+    global PENDING_PROJECT
+    config, assets, psd_bytes = _project_parts(stream)
+    if psd_bytes is None:
+        if not isinstance(config.get('psd'), dict) or not re.fullmatch(r'[0-9a-f]{64}', str(config['psd'].get('sha256', ''))):
+            raise ValueError('This project has no PSD information.')
+        PENDING_PROJECT = {'config': config, 'assets': assets}
+        return None
+    path = WORK/(uuid.uuid4().hex+'.psd')
+    path.write_bytes(psd_bytes)
+    return _project_document(path, config['filename'], config, assets, saved_path)
+
+
+def pending_reply():
+    psd = PENDING_PROJECT['config']['psd']
+    return {'needs_psd': True, 'filename': str(psd.get('filename') or PENDING_PROJECT['config'].get('filename') or 'the PSD'),
+            'name': PENDING_PROJECT['config']['state'].get('name', '')}
 
 
 def rider_paint_folders():
@@ -1483,7 +1548,7 @@ def save_project():
     with LOCK:
         doc = require_doc()
         doc.update(request.get_json())
-        return download(project_bytes(doc), safe_name(doc.state['name'])+PROJECT_EXT)
+        return download(project_bytes(doc, include_psd=False), safe_name(doc.state['name'])+PROJECT_EXT)
 
 
 @app.post('/api/project/quick-save')
@@ -1499,7 +1564,7 @@ def quick_save_project():
             doc.quick_save_path = destination
         temporary = destination.with_name(destination.name+'.tmp')
         try:
-            temporary.write_bytes(project_bytes(doc))
+            temporary.write_bytes(project_bytes(doc, include_psd=True))
             temporary.replace(destination)
         finally:
             temporary.unlink(missing_ok=True)
@@ -1533,6 +1598,8 @@ def reopen_project():
         if not path.is_file():
             raise ValueError('That saved project is no longer available.')
         doc = load_project(path, saved_path=path)
+        if doc is None:
+            return jsonify(pending_reply())
         DOC = doc
         return jsonify(doc.info())
 
@@ -1543,6 +1610,40 @@ def open_project():
     with LOCK:
         upload = request.files['file']
         doc = load_project(upload.stream)
+        if doc is None:
+            return jsonify(pending_reply())
+        DOC = doc
+        return jsonify(doc.info())
+
+
+@app.post('/api/project/attach-psd')
+def attach_psd():
+    """Pair a portable project with the user's own copy of its PSD."""
+    global DOC, PENDING_PROJECT
+    with LOCK:
+        if PENDING_PROJECT is None:
+            raise ValueError('Open a portable project first.')
+        if request.files:
+            upload = request.files['file']
+            path = WORK/(uuid.uuid4().hex+'.psd')
+            upload.save(path)
+            PENDING_PROJECT['upload'] = (path, Path(upload.filename or 'template.psd').name)
+            force = False
+        else:
+            data = request.get_json() or {}
+            if 'upload' not in PENDING_PROJECT or data.get('upload_id') != PENDING_PROJECT['upload'][0].name:
+                raise ValueError('Choose the PSD again.')
+            force = bool(data.get('force'))
+        path, filename = PENDING_PROJECT['upload']
+        expected = PENDING_PROJECT['config']['psd']
+        if file_sha256(path) != expected['sha256'] and not force:
+            return jsonify(mismatch=True, upload_id=path.name, expected=str(expected.get('filename') or ''),
+                           chosen=filename)
+        try:
+            doc = _project_document(path, filename, PENDING_PROJECT['config'], PENDING_PROJECT['assets'])
+        except Exception as exc:
+            raise ValueError(f'This PSD doesn’t match the project’s layers ({exc}). Choose the PSD the project was made with.')
+        PENDING_PROJECT = None
         DOC = doc
         return jsonify(doc.info())
 
@@ -1555,7 +1656,13 @@ def main():
     parser.add_argument('--open')
     parser.add_argument('--session-file')
     parser.add_argument('--state-file')
+    parser.add_argument('--uninstall', action='store_true', help='remove Dirt Gear from this PC')
+    parser.add_argument('--quiet', action='store_true', help='with --uninstall: no questions')
+    parser.add_argument('--remove-data', action='store_true', help='with --uninstall --quiet: also delete saved work')
     args = parser.parse_args()
+    if args.uninstall:
+        import uninstall
+        raise SystemExit(uninstall.run(local_app_data()/APP_DATA_NAME, quiet=args.quiet, remove_data=args.remove_data))
     shutil.rmtree(updates_folder(), ignore_errors=True)
     if args.open:
         DOC = Document(args.open, Path(args.open).name)

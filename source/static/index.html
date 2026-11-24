@@ -122,7 +122,7 @@
   <label class="name-label">Gear name<input id="gearName" placeholder="My custom gear" maxlength="99"></label>
   <label class="name-label">Rider model<select id="gameModel"><option value="">Looking for rider models…</option></select></label>
   <button id="installPnt" class="primary full" disabled><svg><use href="#i-bike"/></svg>Pack &amp; install in MX Bikes</button>
-  <div class="btn-row"><button id="exportTga" disabled>3 TGAs (.zip)</button><button id="saveProject" disabled>Portable project</button></div>
+  <div class="btn-row"><button id="exportTga" disabled>3 TGAs (.zip)</button><button id="saveProject" disabled title="Your design and artwork, without the PSD template">Portable project</button></div>
   <p class="export-note"><svg><use href="#i-check"/></svg>Diffuse, Norm &amp; Spec packed automatically · black alpha on Norm/Spec</p>
  </section>
 </aside>
@@ -153,7 +153,13 @@
  <p id="updateStatus">Updates come from the Dirt Gear releases on GitHub.</p>
  <div id="aboutNotesWrap" hidden><div class="eyebrow">What’s new in <span id="aboutLatest"></span></div><div id="aboutNotes" class="release-notes"></div></div>
  <label class="checkline"><input id="checkOnStart" type="checkbox" checked> Check for updates when Dirt Gear starts</label>
+ <p class="hint about-note"><strong>Use templates fairly.</strong> Please only use PSD templates you’ve bought or been given permission to use by their creator. Dirt Graphic Studios doesn’t support or endorse using templates that weren’t legitimately obtained. Portable projects never include the PSD.</p>
+ <p class="hint about-note">© 2026 Dirt Graphic Studios. All rights reserved. Dirt Gear is a fan-made tool and isn’t affiliated with MX Bikes or PiBoSo. <a href="#" data-notice="license">Licence</a> · <a href="#" data-notice="notices">Third-party notices</a> · <a href="#" data-notice="fonts">Fonts</a></p>
  <div class="dialog-footer"><button id="checkNow">Check for updates</button><button id="aboutInstall" class="primary" hidden>Download and install</button></div></dialog>
+<dialog id="needPsdDialog"><div class="dialog-heading"><div><div class="eyebrow">Portable project</div><h2>Choose your PSD</h2></div><button id="closeNeedPsd" class="close" aria-label="Close">×</button></div>
+ <p>Portable projects don’t include the creator’s PSD template, so templates can’t be passed around without the creator’s permission. Choose your own copy of <strong id="needPsdName"></strong> to open <strong id="needPsdProject"></strong>.</p>
+ <div class="dialog-footer"><button id="needPsdCancel" type="button">Cancel</button><button id="needPsdChoose" class="primary" type="button">Choose PSD</button></div>
+</dialog>
 <dialog id="premiumDialog"><div class="dialog-heading"><div><div class="eyebrow">Dirt Gear Premium</div><h2 id="premiumTitle">Unlimited gear sets.</h2></div><button id="closePremium" class="close" aria-label="Close">×</button></div>
  <p id="premiumSummary"></p>
  <div id="premiumMeter" class="plan-meter" aria-hidden="true"><span></span></div>
@@ -165,5 +171,5 @@
  </div>
  <div id="premiumActive" hidden><div class="dialog-footer"><button id="premiumRemove" type="button">Remove from this PC</button></div></div>
 </dialog>
-<input id="psdInput" type="file" accept=".psd" hidden><input id="projectInput" type="file" accept=".dirtgear,.motogear" hidden><input id="artInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" multiple hidden>
+<input id="psdInput" type="file" accept=".psd" hidden><input id="attachPsdInput" type="file" accept=".psd" hidden><input id="projectInput" type="file" accept=".dirtgear,.motogear" hidden><input id="artInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" multiple hidden>
 <script src="/static/viewer.js"></script><script src="/static/app.js"></script></body></html>

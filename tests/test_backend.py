@@ -30,8 +30,16 @@ qs=req('project/quick-save',state);print('quick-save',qs['saved'])
 assert qs['saved'].endswith('.dirtgear')
 rec=req('project/recent');print('recent',rec)
 re=req('project/reopen',{'id':rec['projects'][0]['id']});assert re['state']['artworks'][0]['id']=='a1'
-proj=raw('project/save',state).read();(SP/'legacy.motogear').write_bytes(proj)
-d2=upload('project/open',SP/'legacy.motogear');assert d2['state']['name']=='Dirt Test'
+proj=raw('project/save',state).read();(SP/'portable.dirtgear').write_bytes(proj)
+assert 'template.psd' not in zipfile.ZipFile(io.BytesIO(proj)).namelist(), 'portable project must not contain the PSD'
+d2=upload('project/open',SP/'portable.dirtgear');assert d2.get('needs_psd'), d2
+d2=upload('project/attach-psd',SP/'fixtures/test-gear.psd');assert d2['state']['name']=='Dirt Test', d2
+legacy=io.BytesIO()
+with zipfile.ZipFile(legacy,'w') as lz:
+    lz.writestr('template.psd',(SP/'fixtures/test-gear.psd').read_bytes())
+    lz.writestr('project.json',json.dumps({'version':1,'filename':'test-gear.psd','state':dict(state,artworks=[]),'assets':{}}))
+(SP/'legacy.motogear').write_bytes(legacy.getvalue())
+d3=upload('project/open',SP/'legacy.motogear');assert d3['state']['name']=='Dirt Test'
 root=Path(SP/'lad/Dirt Gear');print('library',sorted(p.name for p in root.iterdir()))
 if (SP/'lad/Moto Gear').is_dir(): assert (root/'imported-from-moto-gear.txt').exists(), 'Moto Gear library was not copied'
 print('ALL PASS')
