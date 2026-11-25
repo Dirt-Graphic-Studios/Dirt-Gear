@@ -78,21 +78,33 @@ def installed_fonts():
     return FONTS
 
 
+def _cookie_name():
+    # cookies aren't kept apart by port, so name it after this server's port
+    return 'dirt_token_' + re.sub(r'\D', '', request.host.rpartition(':')[2] or '0')
+
+
 @app.before_request
 def protect():
+    """Every request, including the page and its static files, must carry this
+    run's random token: in the X-Dirt-Token header, the ?token= query (the
+    window's first page load), or the cookie that page load sets."""
     if request.host.split(':')[0] not in ('127.0.0.1', 'localhost'):
         abort(403)
     if request.path.startswith('/api/'):
         origin = request.headers.get('Origin')
         if origin and origin != f'http://{request.host}':
             abort(403)
-        candidate = (request.headers.get('X-Dirt-Token') or request.headers.get('X-Moto-Token')) or request.args.get('token', '')
-        if not secrets.compare_digest(candidate, TOKEN):
-            abort(403)
+    candidates = (request.headers.get('X-Dirt-Token') or request.headers.get('X-Moto-Token') or '',
+                  request.args.get('token', ''), request.cookies.get(_cookie_name(), ''))
+    if not any(c and secrets.compare_digest(c, TOKEN) for c in candidates):
+        abort(403)
 
 
 @app.after_request
 def headers(response):
+    if request.args.get('token') and secrets.compare_digest(request.args['token'], TOKEN) \
+            and request.cookies.get(_cookie_name()) != TOKEN:
+        response.set_cookie(_cookie_name(), TOKEN, httponly=True, samesite='Strict', path='/')
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Cache-Control'] = 'no-store'
     response.headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'"
@@ -105,7 +117,8 @@ def error(exc):
     if isinstance(exc, premium.LimitReached):
         return jsonify(error=str(exc), limit=True, premium=premium_module().status()), 402
     code = exc.code if isinstance(exc, HTTPException) else 400
-    logging.exception('Dirt Gear request failed')
+    if not isinstance(exc, HTTPException):
+        logging.exception('Dirt Gear request failed')
     return jsonify(error=str(exc)), code
 
 

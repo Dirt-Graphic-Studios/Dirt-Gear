@@ -49,6 +49,9 @@ jobs:
       - name: Portable project tests
         run: python tests/test_portable_project.py
 
+      - name: Local server token tests
+        run: python tests/test_token.py
+
       - name: Third-party notices
         run: python tools/third_party_notices.py THIRD-PARTY-NOTICES.txt
 

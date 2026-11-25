@@ -1,10 +1,10 @@
-# Dirt Gear v1.2.0
+# Dirt Gear v1.2.1
 
 A local Windows editor for MX Bikes rider gear. Open a creator's gear PSD, choose colourways, add your logos, name and number beneath the shading, check it on the 3D rider, and pack a game-ready paint. No Photoshop, PaintHub or PaintEd needed. Dirt Gear is the successor to Moto Gear v1.3.
 
 ## Install
 
-Run **Dirt-Gear-Setup-1.2.0.exe** and choose **Yes**. It installs for your Windows account in `%LOCALAPPDATA%\Programs\Dirt Gear` (no admin needed), adds Desktop and Start menu shortcuts, and lists Dirt Gear in **Settings > Apps > Installed apps**. Microsoft Edge WebView2 Runtime is required (already on Windows 10/11 in most cases).
+Run **Dirt-Gear-Setup-1.2.1.exe** and choose **Yes**. It installs for your Windows account in `%LOCALAPPDATA%\Programs\Dirt Gear` (no admin needed), adds Desktop and Start menu shortcuts, and lists Dirt Gear in **Settings > Apps > Installed apps**. Microsoft Edge WebView2 Runtime is required (already on Windows 10/11 in most cases).
 
 The setup isn't code-signed yet, so Windows SmartScreen may say it's from an unknown publisher: choose **More info > Run anyway**. Each release is built by GitHub Actions from the public source, and its SHA-256 is in the release's signed `update.json`.
 
@@ -27,7 +27,7 @@ Dirt Gear asks GitHub for the latest release a few seconds after it opens and, i
 - **Network:** only the update check above (`api.github.com`, then GitHub's release downloads when you click Download and install). No account, no analytics, no ads. Your PSDs, designs and paints never leave your PC.
 - **Files:** the program folder, your saved work in `%LOCALAPPDATA%\Dirt Gear`, and the files you choose to save or pack. Pack & install writes `<name>.pnt` into the chosen rider model's `paints` folder, and asks before replacing one with the same name.
 - **Registry:** one key, `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\DirtGear`, for the Installed apps entry. Uninstalling deletes it.
-- The window is a page served by Dirt Gear itself on `127.0.0.1` (a random port), and it answers only requests that carry a random token made at each start.
+- The window is a page served by Dirt Gear itself on `127.0.0.1` (a random port). Every request, including the page and its static files, must carry a random token made at each start: the window's first page load passes it in the address, and that load sets an HttpOnly, SameSite=Strict cookie for the page's own files. Requests without it are refused (`tests/test_token.py`).
 - `source/premium.py` holds code for a possible future Premium version. It's switched off (`source/premium_config.json`), so it never limits anything or contacts anyone.
 
 ## Using it
@@ -77,7 +77,7 @@ Requires Windows and Python 3.12. From this folder:
 powershell -ExecutionPolicy Bypass -File build\build.ps1
 ```
 
-This creates a `.venv`, builds `dist\Dirt Gear\`, then `release\Dirt-Gear-Setup-1.2.0.exe`. To run from source instead: `pip install -r source\requirements.txt` then `python source\app.py`.
+This creates a `.venv`, builds `dist\Dirt Gear\`, then `release\Dirt-Gear-Setup-1.2.1.exe`. To run from source instead: `pip install -r source\requirements.txt` then `python source\app.py`.
 
 Tests: `tests/test_backend.py` (exports, black alpha, PNT, projects, library migration) and `tests/test_ui.cjs` (Playwright walkthrough). Start the app with `python source/app.py --no-browser --session-file <dir>/session.json`, create `<dir>/fixtures/test-gear.psd` with `tests/make_test_psd.py`, then pass `<dir>` to either test. The old Moto Gear suites are kept in `tests/legacy-moto-gear/` for reference.
 

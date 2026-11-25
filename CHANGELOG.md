@@ -1,5 +1,9 @@
 # Dirt Gear releases
 
+## v1.2.1 — 2026-11-25
+
+- **Tighter local security.** Dirt Gear's window is a page served on your own PC. Until now only its functions needed the random key made each time it starts. Now every request does, including the page and its files, so no other program or website on your PC can even load the page.
+
 ## v1.2.0 — 2026-11-24
 
 This update follows an independent review of Dirt Gear's code and installer.
